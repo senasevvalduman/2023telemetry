@@ -1,3 +1,5 @@
+//Autors: sewal, b1d0
+
 #include <TimeLib.h>
 #include "LoRa_E32.h"
 #define F_CPU 16000000UL   // CPU frekansı tanımlandı.
