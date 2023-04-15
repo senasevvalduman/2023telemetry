@@ -1,78 +1,74 @@
 //Autors: sewal, b1d0
 
-#include <TimeLib.h>
-#include "LoRa_E32.h"
-#define F_CPU 16000000UL   // CPU frekansı tanımlandı.
-#define BAUD 9600          // USART baud oranı tanımlandı.
-#define UBRR_VALUE F_CPU/16/BAUD-1
-String command="";
-String b2[30];
-int b2i[30];
-float b2f[30];
-float b3f[30];
-int where[100],j=0;
-char temp;
-int a=1;
+//kütüphaneler
 #include <Arduino.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <SoftwareSerial.h>
 #include <SD.h>
 #include <SPI.h>
-SoftwareSerial portLora(2, 3);
-LoRa_E32 e32ttl(&portLora);
 
-File myFile;
+//tanımlamalar
+#define F_CPU 16000000UL   // CPU frekansı tanımlandı.
+#define BAUD 9600          // USART baud oranı tanımlandı.
+#define UBRR_VALUE F_CPU/16/BAUD-1
 
+//değişkenler
+String command="";
+String b2[30];
+int b2i[30];
+float b2f[30], b3f[30];
+int where[100],j=0;
+char temp;
+int a=1;
 int pinCS = 53;
-
 char ayrac = ';';
 char bitis = '/';
+String message;
 
-typedef struct {
-byte sicaklik1[10];
-byte hiz[10];
-byte volt[12];
-byte enerji[10];
-} Signal;
-Signal data;
+//kütüphane tanımlamaları
+File myFile;
 
+//sd kart veri yapısı
 typedef struct {
-byte sicaklik1[10];
-byte hiz[10];
+byte sicaklik1[5];
+byte hiz[5];
 byte volt[12];
-byte enerji[10];
+byte enerji[5];
 } Signal1;
-Signal1 data1;
+Signal1 data;
 
 void setup(){
+  //Seri Haberleşme Başlangıcı
   Serial.begin(9600);//Serial 0 started
-  e32ttl.begin();
-  pinMode(pinCS, OUTPUT);
-  sewal();
+  Serial2.begin(9600); //LoRa port
   UBRR1 = 103;//Serial 1 Started 9600 baud
-   UCSR1C |= (1 << UCSZ11) | (1 << UCSZ10); 
-   UCSR1B |= (1 << RXEN1) | (1 << TXEN1) | (1 << RXCIE1 );
+  UCSR1C |= (1 << UCSZ11) | (1 << UCSZ10); 
+  UCSR1B |= (1 << RXEN1) | (1 << TXEN1) | (1 << RXCIE1 );
 
+  //Pin tanımları
+  pinMode(pinCS, OUTPUT);
+
+  sewal(); //SD kartı başlatma
 }
 
-void loop(){bedo();
+void loop()
+{
+  bedo(); //sd kart içine veri yazdırma
   while(1){
     a++;
-    Serial.println(*(float*)data.volt);
-    sdkartdeneme();
-    sewalLora();
-  
+    sewalLora(); //LoRa haberleşmesi
+    sdkartdeneme(); //SD kart içine veri yazdırma
     delay(100);
   }
-
 }
+
+//AKS'den veri alma
 ISR(USART1_RX_vect){ 
   temp=UDR1;
   if(temp!='\n'){
     command+=temp;
-}
- else{
+  }
+  else{
     if(command.substring(0,2)=="T,"){
       for(int i=0;i<command.length();i++){
         if(command.charAt(i)==','){
@@ -80,20 +76,19 @@ ISR(USART1_RX_vect){
           j++;
         }
       }
+      //Gelen verileri ayırma ve ilgili tiplere dönüştürme
       for(int i=0;i<j-1;i++){
         b2[i]=command.substring(where[i]+1,where[i+1]);
         b2i[i]=b2[i].toInt();
         b3f[i]=b2[i].toFloat();
         b2f[i] = b2i[i];
+        message = b2[i];
         Serial.println(b2f[i]);
+        //AKS verilerini sd kart verilerine eşitleme
         *(float*)data.hiz = b2f[0];
         *(float*)data.volt = b3f[1];
         *(float*)data.enerji = b2f[2];
         *(float*)data.sicaklik1 = b2f[3];
-        *(float*)data1.hiz = b2f[0];
-        *(float*)data1.volt = b3f[1];
-        *(float*)data1.enerji = b2f[2];
-        *(float*)data1.sicaklik1 = b2f[3];
       }
     }
     command="";
@@ -115,29 +110,29 @@ void USART_TransmitString(String DataByte){
   for(int i=0;i<DataByte.length();i++){
     USART_TransmitPolling(DataByte.charAt(i));
   }  
-   
- 
-
 }
 
+//Lora ile veri gönderme
 void sewalLora(){
-ResponseStatus rs = e32ttl.sendFixedMessage(0, 16, 12, &data, sizeof(Signal));
-  Serial.println(rs.getResponseDescription());
-     
-  delay(650);
-  
-  }
-  
+  Serial2.write((byte)0x00);
+  Serial2.write(19);
+  Serial2.write(12);
+  Serial2.print(b2f[0]);
+  Serial2.print(",");
+  Serial2.print(b3f[1]);
+  Serial2.print(",");
+  Serial2.print(b2f[2]);
+  Serial2.print(",");
+  Serial2.print(b2f[3]);
+  Serial2.println("");    
+  delay(650); 
+}
+
+//sd kartın içine veri yazdırma
 void bedo(){
   myFile = SD.open("test.txt", FILE_WRITE);
    if(myFile){
    myFile.println("zaman_ms;hiz_kmh;T_bat_C;V_bat_C;kalan_enerji_Wh");
-   myFile.print(hour());
-   myFile.print(":");
-   myFile.print(minute());
-   myFile.print(":");
-   myFile.print(second());
-   myFile.print("/ ");
    myFile.print(*(float*)(data.sicaklik1));
    myFile.print(" ;");
    myFile.print(*(float*)(data.hiz));
@@ -152,13 +147,12 @@ void bedo(){
    else{
     Serial.println("test.txt açılmadı");
    }
-
-     
   delay(650);
   }
+
+//SD kartı başlatma
 void sewal(){
- 
-    if (SD.begin())
+  if (SD.begin())
   {
     Serial.println("SD card is ready to use.");
   } 
@@ -187,6 +181,7 @@ void sewal(){
   }*/
 }
 
+//SD kartın içinde dosya açma
 void sdkartdeneme(){
   myFile = SD.open("test.txt", FILE_WRITE);
   
@@ -203,4 +198,4 @@ void sdkartdeneme(){
     Serial.println("error opening test.txt");
     delay(300);
   }
-  }
+}
