@@ -1,11 +1,11 @@
 //Autors: sewal, b1d0
-
 //kütüphaneler
 #include <Arduino.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <SD.h>
 #include <SPI.h>
+#include <TimeLib.h>
 
 //tanımlamalar
 #define F_CPU 16000000UL   // CPU frekansı tanımlandı.
@@ -14,6 +14,7 @@
 
 //değişkenler
 String command="";
+String dosyaAdi;
 String b2[30];
 int b2i[30];
 float b2f[30], b3f[30];
@@ -44,20 +45,20 @@ void setup(){
   UBRR1 = 103;//Serial 1 Started 9600 baud
   UCSR1C |= (1 << UCSZ11) | (1 << UCSZ10); 
   UCSR1B |= (1 << RXEN1) | (1 << TXEN1) | (1 << RXCIE1 );
-
+  
   //Pin tanımları
   pinMode(pinCS, OUTPUT);
 
   sewal(); //SD kartı başlatma
+  
 }
 
 void loop()
 {
-  bedo(); //sd kart içine veri yazdırma
   while(1){
     a++;
     sewalLora(); //LoRa haberleşmesi
-    sdkartdeneme(); //SD kart içine veri yazdırma
+    bedo();
     delay(100);
   }
 }
@@ -128,11 +129,28 @@ void sewalLora(){
   delay(650); 
 }
 
+//SD kartı başlatma
+void sewal(){
+  if (!SD.begin(pinCS)) {
+    Serial.println("SD kart başlatılamadı.");
+    return;
+  }
+  
+  Serial.println("SD kart başarılı bir şekilde başlatıldı.");
+  
+  dosyaAdi = "veri_" + String(millis()) + ".txt";
+ 
+}
+
 //sd kartın içine veri yazdırma
 void bedo(){
-  myFile = SD.open("test.txt", FILE_WRITE);
-   if(myFile){
-   myFile.println("zaman_ms;hiz_kmh;T_bat_C;V_bat_C;kalan_enerji_Wh");
+   //if(myFile){
+   // Dosya açılır ve yazma işlemi yapılır
+     // Kayıt dosyası adı belirlenir
+   File myFile = SD.open(dosyaAdi, FILE_WRITE);
+   myFile.println("zaman_ms;hiz_kmh;V_bat_C;kalan_enerji_Wh");
+   myFile.print(second());
+   myFile.print("; ");
    myFile.print(*(float*)(data.sicaklik1));
    myFile.print(" ;");
    myFile.print(*(float*)(data.hiz));
@@ -142,60 +160,11 @@ void bedo(){
    myFile.print(*(float*)(data.enerji));
    myFile.println(" / ");
    myFile.close(); // kapatmamak gerekebilir
-    Serial.println("Done.");
-   }
-   else{
-    Serial.println("test.txt açılmadı");
-   }
+   Serial.println("Done.");
+   myFile.close();
+  // }
+   //else{
+    //Serial.println("veri.txt açılmadı");
+  // }
   delay(650);
-  }
-
-//SD kartı başlatma
-void sewal(){
-  if (SD.begin())
-  {
-    Serial.println("SD card is ready to use.");
-  } 
-  else{
-    Serial.println("SD card initialization failed");
-    return;
-  }
-  
-  // Create/Open file 
-  
-  
-  // if the file opened okay, write to it:
-
-  // Reading the file
-  /*myFile = SD.open("test.txt");
-  if (myFile) {
-    Serial.println("Read:");
-    // Reading the whole file
-    while (myFile.available()) {
-      Serial.write(myFile.read());
-   }
-    myFile.close();
-  }
-  else {
-    Serial.println("error opening test.txt");
-  }*/
-}
-
-//SD kartın içinde dosya açma
-void sdkartdeneme(){
-  myFile = SD.open("test.txt", FILE_WRITE);
-  
-    if (myFile) {
-    Serial.println("Writing to file...");
-    // Write to file
-    myFile.println("zaman_ms;hiz_kmh;T_bat_C;V_bat_C;kalan_enerji_Wh");
-    bedo();
-    delay(300);
-  
-  }
-  // if the file didn't open, print an error:
-  else {
-    Serial.println("error opening test.txt");
-    delay(300);
-  }
 }
