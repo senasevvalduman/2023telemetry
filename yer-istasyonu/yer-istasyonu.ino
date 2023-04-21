@@ -5,7 +5,7 @@
 SoftwareSerial lora(10, 11);
 
 //Değişkenler
-char gelenVeri;
+String gelenVeri;
  
 void setup() {
   //Haberleşme Başlangıcı
@@ -16,7 +16,10 @@ void setup() {
 void loop() {
   //Gelen veriyi ekrana yazdırma
   while (lora.available()) {
-    gelenVeri = lora.read();
-    Serial.print(gelenVeri);    
+    gelenVeri = lora.readString();
+    if(gelenVeri[0] = 'S')
+    {
+      Serial.print(gelenVeri);    
+    }
   }
 }
