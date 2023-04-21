@@ -25,6 +25,8 @@ int pinCS = 53;
 char ayrac = ';';
 char bitis = '/';
 String message;
+int checksum;
+char loraBaslangic = 'S';
 
 //kütüphane tanımlamaları
 File myFile;
@@ -58,6 +60,7 @@ void loop()
   while(1){
     a++;
     sewalLora(); //LoRa haberleşmesi
+    Serial.println(*(float*)(data.volt));
     bedo();
     delay(100);
   }
@@ -84,12 +87,14 @@ ISR(USART1_RX_vect){
         b3f[i]=b2[i].toFloat();
         b2f[i] = b2i[i];
         message = b2[i];
-        Serial.println(b2f[i]);
         //AKS verilerini sd kart verilerine eşitleme
         *(float*)data.hiz = b2f[0];
         *(float*)data.volt = b3f[1];
         *(float*)data.enerji = b2f[2];
         *(float*)data.sicaklik1 = b2f[3];
+        checksum = sizeof(b2f[0]) + sizeof(b3f[1]) + sizeof(b2f[2]) + sizeof(b3f[3])
+                   + sizeof(ayrac) + sizeof(ayrac) + sizeof(ayrac) + sizeof(ayrac)
+                   + sizeof(loraBaslangic) + sizeof(checksum);
       }
     }
     command="";
@@ -116,15 +121,19 @@ void USART_TransmitString(String DataByte){
 //Lora ile veri gönderme
 void sewalLora(){
   Serial2.write((byte)0x00);
-  Serial2.write(19);
+  Serial2.write(16);
   Serial2.write(12);
+  Serial2.write(loraBaslangic);
+  Serial2.print(ayrac);
   Serial2.print(b2f[0]);
-  Serial2.print(",");
+  Serial2.print(ayrac);
   Serial2.print(b3f[1]);
-  Serial2.print(",");
+  Serial2.print(ayrac);
   Serial2.print(b2f[2]);
-  Serial2.print(",");
+  Serial2.print(ayrac);
   Serial2.print(b2f[3]);
+  Serial2.print(ayrac);
+  Serial2.print(checksum);
   Serial2.println("");    
   delay(650); 
 }
