@@ -17,7 +17,7 @@ void setup() {
 }
  
 void loop() {
-  //Gelen veriyi ekrana yazdırma
+  //Veri alımının kontrolü
   while (lora.available()) {
     gelenVeri = lora.readString();
     //Paket başlangıç kontrolüne göre işleme devam edilir
