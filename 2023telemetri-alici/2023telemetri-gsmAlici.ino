@@ -35,6 +35,7 @@ float b2f[30], b3f[30];
 char temp;
 String command="";
 int where[100],j=0;
+float VoltDonusum;
 
 //tanımlamalar
 #define F_CPU 16000000UL   // CPU frekansı tanımlandı.
@@ -78,7 +79,7 @@ void loop() {
 
         Serial.print(b2f[0]);
         Serial.print(",");
-        Serial.print(b3f[1]);
+        Serial.print(VoltDonusum);
         Serial.print(",");
         Serial.print(b2f[2]);
         Serial.print(",");
@@ -87,7 +88,7 @@ void loop() {
         client.print("GET /update?value=");
         client.print(b2f[0]);
         client.print(",");
-        client.print(b3f[1]);
+        client.print(VoltDonusum);
         client.print(",");
         client.print(b2f[2]);
         client.print(",");
@@ -105,7 +106,7 @@ void loop() {
         client.println();
         object.printTo(client);
 
-        delay(3100);
+        delay(2000);
         i++;
         if(i == 30){
           client.flush();
@@ -134,7 +135,7 @@ ISR(USART1_RX_vect){
         b3f[i]=b2[i].toFloat();
         b2f[i] = b2i[i];
         message = b2[i];
-        Serial.println(b2f[i]);
+        VoltDonusum = (b3f[1]/1000);
         //AKS verilerini sd kart verilerine eşitleme
       }
     }
